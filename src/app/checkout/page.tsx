@@ -95,17 +95,59 @@ export default function CheckoutPage() {
         throw new Error(data.error || 'Failed to create transaction');
       }
 
+      // Helper to update order payment details
+      const updateOrderPayment = async (result: any) => {
+        try {
+          const paymentDetails: any = {};
+          
+          if (result.va_numbers && result.va_numbers.length > 0) {
+            paymentDetails.bank = result.va_numbers[0].bank;
+            paymentDetails.vaNumber = result.va_numbers[0].va_number;
+          } else if (result.permata_va_number) {
+            paymentDetails.bank = 'permata';
+            paymentDetails.vaNumber = result.permata_va_number;
+          } else if (result.bill_key && result.biller_code) {
+            paymentDetails.bank = 'mandiri';
+            paymentDetails.billKey = result.bill_key;
+            paymentDetails.billerCode = result.biller_code;
+          } else if (result.payment_type === 'qris') {
+            paymentDetails.issuer = result.issuer || 'gopay'; 
+            paymentDetails.acquirer = result.acquirer;
+          } else if (result.payment_type === 'gopay') {
+            paymentDetails.issuer = 'gopay';
+          } else if (result.payment_type === 'shopeepay') {
+            paymentDetails.issuer = 'shopeepay';
+          }
+
+          await fetch('/api/orders', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: result.order_id,
+              paymentType: result.payment_type,
+              paymentDetails: paymentDetails,
+              status: 'pending'
+            })
+          });
+        } catch (error) {
+          console.error('Failed to update order payment', error);
+        }
+      };
+
       // Open Midtrans Snap Popup
       window.snap.pay(data.token, {
         onSuccess: function(result: any) {
           console.log('Payment success', result);
+          updateOrderPayment(result); // Ensure details are saved
           removeSelectedItems();
           router.push(`/success?orderId=${result.order_id}`);
         },
         onPending: function(result: any) {
           console.log('Payment pending', result);
+          updateOrderPayment(result); // Save payment method immediately
           removeSelectedItems();
-          router.push(`/success?orderId=${result.order_id}`); // Or a specific pending page
+          // Do NOT redirect here. Let the user see the VA number/instructions in the popup.
+          // The user will close the popup manually when done reading.
         },
         onError: function(result: any) {
           console.log('Payment error', result);
@@ -114,6 +156,8 @@ export default function CheckoutPage() {
         },
         onClose: function() {
           console.log('Customer closed the popup without finishing the payment');
+          // If they selected a method (pending), updateOrderPayment was already called.
+          // If they didn't select anything, order remains pending with no method (correct).
           removeSelectedItems();
           router.push('/profile');
           setIsProcessing(false);
