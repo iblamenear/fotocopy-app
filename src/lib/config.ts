@@ -1,0 +1,7 @@
+export const config = {
+  MONGODB_URI: process.env.MONGODB_URI!,
+  MIDTRANS_SERVER_KEY: process.env.MIDTRANS_SERVER_KEY!,
+  MIDTRANS_CLIENT_KEY: process.env.NEXT_PUBLIC_MIDTRANS_CLIENT_KEY!,
+  API_URL: process.env.NEXT_PUBLIC_API_URL!,
+  NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET!,
+};
