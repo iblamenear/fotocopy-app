@@ -10,11 +10,37 @@ function SuccessContent() {
   const orderId = searchParams.get('orderId');
   const [copied, setCopied] = useState(false);
 
-  const copyToClipboard = () => {
-    if (orderId) {
-      navigator.clipboard.writeText(orderId);
+  const copyToClipboard = async () => {
+    if (!orderId) return;
+
+    try {
+      await navigator.clipboard.writeText(orderId);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.warn('Clipboard API failed, trying fallback...', err);
+      try {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement("textarea");
+        textArea.value = orderId;
+        textArea.style.position = "fixed"; // Avoid scrolling to bottom
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        } else {
+          throw new Error('Fallback copy failed');
+        }
+      } catch (fallbackErr) {
+        console.error('Copy failed:', fallbackErr);
+        alert('Gagal menyalin Order ID. Silakan salin secara manual.');
+      }
     }
   };
 
