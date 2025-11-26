@@ -34,14 +34,31 @@ type CartContextType = {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [items, setItems] = useState<OrderItem[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const prevStatusRef = React.useRef(status);
+
+  // Clear cart on logout
+  useEffect(() => {
+    if (prevStatusRef.current === 'authenticated' && status === 'unauthenticated') {
+      setItems([]);
+      localStorage.removeItem('cart');
+    }
+    prevStatusRef.current = status;
+  }, [status]);
 
   // Load cart from local storage on mount (for guest) or when session changes
   useEffect(() => {
     const loadCart = async () => {
-      if (session?.user) {
+      // Wait for session to be determined
+      if (status === 'loading') return;
+
+      if (status === 'authenticated' && session?.user) {
+        // User is logged in: Load from DB and CLEAR local storage to avoid conflicts
+        // This prevents "ghost" items from previous guest sessions appearing
+        localStorage.removeItem('cart'); 
+        
         try {
           const res = await fetch('/api/user/cart');
           if (res.ok) {
@@ -54,14 +71,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
                }));
                setItems(loadedItems);
             } else if (items.length > 0) {
+               // If DB is empty but state has items (e.g. just added), sync to DB
                saveCartToDb(items);
             }
           }
         } catch (error) {
           console.error('Failed to load cart from DB:', error);
         }
-      } else {
-        // Guest mode: load from localStorage
+      } else if (status === 'unauthenticated') {
+        // Guest mode: load from localStorage ONLY if not logged in
         const savedCart = localStorage.getItem('cart');
         if (savedCart) {
           try {
@@ -81,7 +99,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     };
 
     loadCart();
-  }, [session]);
+  }, [session, status]);
 
   // Save cart to DB or localStorage whenever items change
   useEffect(() => {
