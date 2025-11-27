@@ -3,12 +3,37 @@
 import Link from 'next/link';
 import { CheckCircle, ArrowRight, Package, Home, Copy, Check } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 
 function SuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('orderId');
   const [copied, setCopied] = useState(false);
+  const [status, setStatus] = useState('Checking...');
+
+  // Auto-check payment status on load (fix for localhost webhook issues)
+  useEffect(() => {
+    if (orderId) {
+      const checkStatus = async () => {
+        try {
+          await fetch('/api/midtrans/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ orderId }),
+          });
+          // We don't strictly need to do anything with the response here
+          // because the API updates the DB. The user can just check their profile/track page.
+          // But we could update local UI if we wanted to show "Payment Confirmed"
+          setStatus('Confirmed');
+        } catch (error) {
+          console.error('Failed to check status:', error);
+        }
+      };
+      
+      // Small delay to ensure Midtrans has processed it
+      setTimeout(checkStatus, 2000);
+    }
+  }, [orderId]);
 
   const copyToClipboard = async () => {
     if (!orderId) return;

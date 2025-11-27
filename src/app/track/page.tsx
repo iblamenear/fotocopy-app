@@ -337,6 +337,12 @@ export default function TrackOrderPage() {
                     </span>
                   </div>
                   <div>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-1">Biaya Layanan</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      Rp {(order.totalAmount - order.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0) - ((order.delivery as any)?.price || 0)).toLocaleString('id-ID')}
+                    </p>
+                  </div>
+                  <div>
                     <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold mb-1">Total Tagihan</p>
                     <p className="text-xl font-extrabold text-blue-600 dark:text-blue-400">
                       Rp {order.totalAmount.toLocaleString('id-ID')}
@@ -367,6 +373,11 @@ export default function TrackOrderPage() {
                         <span className="text-xs font-bold text-gray-500 bg-white dark:bg-gray-700 px-2 py-1 rounded border border-gray-200 dark:border-gray-600 capitalize">
                           {item.serviceType === 'print' ? 'Print' : item.serviceType}
                         </span>
+                        {item.price && (
+                          <span className="ml-2 text-xs font-bold text-blue-600 dark:text-blue-400">
+                            Rp {item.price.toLocaleString('id-ID')}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>

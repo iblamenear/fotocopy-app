@@ -102,7 +102,18 @@ export default function ProfilePage() {
   const handlePayment = (token: string, orderId?: string) => {
     if ((window as any).snap) {
       (window as any).snap.pay(token, {
-        onSuccess: function(result: any) {
+        onSuccess: async function(result: any) {
+          console.log("Payment success:", result);
+          // Manually check status to update DB immediately (fix for localhost)
+          try {
+            await fetch('/api/midtrans/status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ orderId: result.order_id }),
+            });
+          } catch (e) {
+            console.error("Failed to manual check status", e);
+          }
           fetchOrders(); // Refresh orders
         },
         onPending: async function(result: any) {
@@ -459,7 +470,7 @@ export default function ProfilePage() {
               <div className="flex-1 min-w-0">
                 <p className="text-[10px] font-bold text-emerald-500 dark:text-emerald-400 uppercase tracking-wider mb-1">Total Pengeluaran</p>
                 <p className="text-3xl font-black text-gray-800 dark:text-white tracking-tight truncate">
-                  Rp {orders.filter(o => o.payment.status !== 'failed' && o.payment.status !== 'cancelled')
+                  Rp {orders.filter(o => ['paid', 'processing', 'shipped', 'completed'].includes(o.payment.status))
                             .reduce((acc, curr) => acc + curr.totalAmount, 0).toLocaleString('id-ID')}
                 </p>
                 <p className="text-[10px] text-gray-400 dark:text-gray-500 font-medium mt-1">Akumulasi sukses</p>
@@ -581,10 +592,10 @@ export default function ProfilePage() {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-4">
-                      <div className="text-right hidden sm:block">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Total Belanja</p>
-                        <p className="font-bold text-blue-600 dark:text-blue-400 text-lg">Rp {order.totalAmount.toLocaleString('id-ID')}</p>
+                    <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 sm:gap-4 mt-4 sm:mt-0">
+                      <div className="text-right">
+                        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">Total Belanja</p>
+                        <p className="font-bold text-blue-600 dark:text-blue-400 text-base sm:text-lg">Rp {order.totalAmount.toLocaleString('id-ID')}</p>
                       </div>
                       <div className={`px-4 py-2 rounded-full text-sm font-bold border ${getStatusColor(order.payment.status)}`}>
                         {order.payment.status.toUpperCase()}
@@ -642,9 +653,16 @@ export default function ProfilePage() {
                               <li key={idx} className="text-sm text-gray-900 dark:text-gray-100 bg-gray-50 dark:bg-gray-700/50 p-4 rounded-lg border border-gray-100 dark:border-gray-700">
                                 <div className="flex justify-between items-start">
                                   <span className="font-bold text-base">{item.fileName}</span>
-                                  <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full capitalize">
-                                    {item.serviceType === 'print' ? 'Print/FC' : item.serviceType === 'photo' ? 'Cetak Foto' : item.serviceType}
-                                  </span>
+                                  <div className="flex flex-col items-end gap-1">
+                                    <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full capitalize">
+                                      {item.serviceType === 'print' ? 'Print/FC' : item.serviceType === 'photo' ? 'Cetak Foto' : item.serviceType}
+                                    </span>
+                                    {item.price && (
+                                      <span className="text-sm font-bold text-gray-900 dark:text-white">
+                                        Rp {item.price.toLocaleString('id-ID')}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs text-gray-600 dark:text-gray-400">
                                   <p>Halaman: <span className="font-medium text-gray-900 dark:text-white">{item.pageCount}</span></p>
@@ -666,6 +684,27 @@ export default function ProfilePage() {
                               </li>
                             ))}
                           </ul>
+
+                          {/* Payment Breakdown */}
+                          <div className="bg-gray-50 dark:bg-gray-700/30 p-4 rounded-lg border border-gray-100 dark:border-gray-700 mb-6 space-y-2">
+                            <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Rincian Pembayaran</h4>
+                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                              <span>Subtotal Item</span>
+                              <span>Rp {order.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                              <span>Ongkos Kirim</span>
+                              <span>Rp {((order.delivery as any)?.price || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="flex justify-between text-sm text-gray-600 dark:text-gray-400">
+                              <span>Biaya Layanan</span>
+                              <span>Rp {(order.totalAmount - order.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0) - ((order.delivery as any)?.price || 0)).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="flex justify-between text-base font-bold text-gray-900 dark:text-white pt-2 border-t border-gray-200 dark:border-gray-600 mt-2">
+                              <span>Total Bayar</span>
+                              <span>Rp {order.totalAmount.toLocaleString('id-ID')}</span>
+                            </div>
+                          </div>
 
                           {/* Action Buttons for Pending Orders */}
                           {order.payment.status === 'pending' && (

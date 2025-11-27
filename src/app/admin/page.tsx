@@ -156,7 +156,7 @@ export default function AdminPage() {
               </div>
               <h3 className="text-gray-500 dark:text-gray-400 text-sm font-medium">Pendapatan</h3>
               <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">
-                Rp {orders.reduce((sum, o) => o.payment.status === 'paid' || o.payment.status === 'completed' ? sum + (o.totalAmount || 0) : sum, 0).toLocaleString('id-ID')}
+                Rp {orders.reduce((sum, o) => ['paid', 'processing', 'shipped', 'completed'].includes(o.payment.status) ? sum + (o.totalAmount || 0) : sum, 0).toLocaleString('id-ID')}
               </p>
             </div>
           </div>
@@ -251,82 +251,170 @@ export default function AdminPage() {
                 expandedOrderId === order.orderId ? 'grid-rows-[1fr] opacity-100 border-t border-gray-100 dark:border-gray-700/50' : 'grid-rows-[0fr] opacity-0'
               }`}>
                 <div className="overflow-hidden bg-gray-50/50 dark:bg-gray-800/30">
-                  <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Customer Info */}
-                    <div className="space-y-6">
-                      <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm uppercase tracking-wider">
-                        <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600">
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                  <div className="p-6 sm:p-8 flex flex-col gap-8">
+                    {/* Top Row: Info Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+                      {/* Customer Info */}
+                      <div className="space-y-2 h-full group">
+                        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 h-full flex flex-col">
+                          <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-50 dark:border-gray-700/50">
+                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 text-blue-600 dark:text-blue-400 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                            </div>
+                            <h4 className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-wide">Customer Details</h4>
+                          </div>
+                          
+                          <div className="space-y-4 flex-1">
+                            <div className="flex items-center gap-3">
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/40 dark:to-blue-800/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-lg shadow-inner">
+                                {order.customer.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div>
+                                <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase font-bold tracking-wider">Name</p>
+                                <p className="font-bold text-gray-900 dark:text-white text-base">{order.customer.name}</p>
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-0.5">Contact</p>
+                              <p className="font-medium text-gray-700 dark:text-gray-300 text-sm break-all">{order.customer.email}</p>
+                              <p className="font-medium text-gray-700 dark:text-gray-300 text-sm">{order.customer.phone}</p>
+                            </div>
+                            
+                            <div className="pt-3 border-t border-gray-50 dark:border-gray-700/50">
+                              <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Shipping Address</p>
+                              <p className="font-medium text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{order.customer.address}</p>
+                            </div>
+                          </div>
                         </div>
-                        Customer Details
-                      </h4>
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm space-y-3">
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold">Name</p>
-                          <p className="font-medium text-gray-900 dark:text-white">{order.customer.name}</p>
+                      </div>
+
+                      {/* Delivery Info Block */}
+                      <div className="space-y-2 h-full group">
+                        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 h-full flex flex-col">
+                          <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-50 dark:border-gray-700/50">
+                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                              <Truck className="w-5 h-5" />
+                            </div>
+                            <h4 className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-wide">Delivery Info</h4>
+                          </div>
+
+                          <div className="space-y-4 flex-1">
+                            <div>
+                              <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Method</p>
+                              <p className="font-bold text-gray-900 dark:text-white capitalize text-lg">
+                                {(order as any).delivery?.method || '-'}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-gray-400 dark:text-gray-500 text-[10px] uppercase font-bold tracking-wider mb-1">Cost</p>
+                              <p className="font-bold text-gray-900 dark:text-white text-lg">
+                                {(order as any).delivery?.price ? `Rp ${(order as any).delivery.price.toLocaleString('id-ID')}` : '-'}
+                              </p>
+                            </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold">Contact</p>
-                          <p className="font-medium text-gray-900 dark:text-white text-sm">{order.customer.email}</p>
-                          <p className="font-medium text-gray-900 dark:text-white text-sm">{order.customer.phone}</p>
-                        </div>
-                        <div>
-                          <p className="text-gray-500 dark:text-gray-400 text-xs uppercase font-bold">Shipping Address</p>
-                          <p className="font-medium text-gray-900 dark:text-white text-sm leading-relaxed">{order.customer.address}</p>
+                      </div>
+
+                      {/* Payment Summary Block */}
+                      <div className="space-y-2 h-full group">
+                        <div className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 h-full flex flex-col">
+                          <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-50 dark:border-gray-700/50">
+                            <div className="p-2.5 rounded-xl bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/20 dark:to-yellow-800/20 text-yellow-600 dark:text-yellow-400 group-hover:scale-110 transition-transform duration-300 shadow-sm">
+                              <CreditCard className="w-5 h-5" />
+                            </div>
+                            <h4 className="font-bold text-gray-900 dark:text-white text-sm uppercase tracking-wide">Payment Summary</h4>
+                          </div>
+
+                          <div className="space-y-2 flex-1">
+                            <div className="flex justify-between text-xs items-center">
+                              <span className="text-gray-500 dark:text-gray-400 font-medium">Subtotal</span>
+                              <span className="font-semibold text-gray-900 dark:text-white">Rp {order.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="flex justify-between text-xs items-center">
+                              <span className="text-gray-500 dark:text-gray-400 font-medium">Delivery</span>
+                              <span className="font-semibold text-gray-900 dark:text-white">Rp {((order as any).delivery?.price || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="flex justify-between text-xs items-center">
+                              <span className="text-gray-500 dark:text-gray-400 font-medium">Service Fee</span>
+                              <span className="font-semibold text-gray-900 dark:text-white">Rp {(order.totalAmount - order.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0) - ((order as any).delivery?.price || 0)).toLocaleString('id-ID')}</span>
+                            </div>
+                            <div className="flex justify-between text-base font-bold pt-3 border-t border-dashed border-gray-200 dark:border-gray-700 mt-2">
+                              <span className="text-gray-900 dark:text-white">Total</span>
+                              <span className="text-blue-600 dark:text-blue-400">Rp {order.totalAmount.toLocaleString('id-ID')}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
 
                     {/* Order Items */}
-                    <div className="space-y-6 lg:col-span-2">
+                    <div className="space-y-6 w-full">
                       <h4 className="font-bold text-gray-900 dark:text-white flex items-center gap-2 text-sm uppercase tracking-wider">
-                        <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg text-purple-600">
+                        <div className="p-1.5 bg-gradient-to-br from-purple-100 to-purple-50 dark:from-purple-900/30 dark:to-purple-800/20 rounded-lg text-purple-600 dark:text-purple-400 shadow-sm">
                           <Package className="w-4 h-4" />
                         </div>
                         Order Items ({order.items.length})
                       </h4>
-                      <div className="grid gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         {order.items.map((item: any, idx: number) => (
-                          <div key={idx} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 transition-all hover:border-blue-300 dark:hover:border-blue-700">
+                          <div key={idx} className="bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between gap-4 group h-full relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-blue-400 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            
                             <div className="flex items-start gap-4">
-                              <div className="h-10 w-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-500 font-bold text-xs">
-                                {idx + 1}
+                              <div className="h-12 w-12 bg-gray-50 dark:bg-gray-700/50 rounded-xl flex items-center justify-center text-gray-400 dark:text-gray-500 font-bold text-sm shrink-0 border border-gray-100 dark:border-gray-600 group-hover:border-blue-200 dark:group-hover:border-blue-800 transition-colors">
+                                #{idx + 1}
                               </div>
-                              <div>
-                                <p className="font-bold text-gray-900 dark:text-white text-lg">{item.fileName}</p>
-                                <div className="flex flex-wrap gap-2 mt-2">
-                                  <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs rounded-md font-medium capitalize">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-gray-900 dark:text-white text-lg truncate mb-2" title={item.fileName}>{item.fileName}</p>
+                                <div className="flex flex-wrap gap-2">
+                                  <span className={`px-2.5 py-1 text-xs rounded-lg font-bold border ${
+                                    item.serviceType === 'print' ? 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800' : 
+                                    item.serviceType === 'photo' ? 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800' : 
+                                    'bg-gray-50 text-gray-700 border-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                                  } capitalize`}>
                                     {item.serviceType === 'print' ? 'Print / FC' : item.serviceType === 'photo' ? 'Cetak Foto' : item.serviceType}
                                   </span>
-                                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-md font-medium">
-                                    {item.pageCount} Halaman
-                                  </span>
-                                  <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-md font-medium">
-                                    {item.settings?.copies || 1} Rangkap
-                                  </span>
-                                  {item.serviceType !== 'binding' && (
-                                    <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-md font-medium">
-                                      {item.settings?.paperSize}
+                                  
+                                  {item.price && (
+                                    <span className="px-2.5 py-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-100 dark:border-green-800 text-xs rounded-lg font-bold">
+                                      Rp {item.price.toLocaleString('id-ID')}
                                     </span>
                                   )}
                                 </div>
                               </div>
                             </div>
                             
-                            {item.settings?.binding !== 'none' && (
-                              <div className="text-right">
-                                <span className="inline-block px-3 py-1 bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-300 rounded-lg text-xs font-bold capitalize">
-                                  Binding: {item.settings?.binding}
+                            <div className="flex items-center justify-between pt-3 border-t border-gray-50 dark:border-gray-700/50 text-xs text-gray-500 dark:text-gray-400">
+                              <div className="flex gap-3">
+                                <span className="flex items-center gap-1">
+                                  <span className="font-semibold text-gray-900 dark:text-white">{item.pageCount}</span> Hal
                                 </span>
+                                <span className="w-px h-3 bg-gray-200 dark:bg-gray-700 self-center"></span>
+                                <span className="flex items-center gap-1">
+                                  <span className="font-semibold text-gray-900 dark:text-white">{item.settings?.copies || 1}x</span> Copy
+                                </span>
+                                {item.serviceType !== 'binding' && (
+                                  <>
+                                    <span className="w-px h-3 bg-gray-200 dark:bg-gray-700 self-center"></span>
+                                    <span className="font-medium">{item.settings?.paperSize}</span>
+                                  </>
+                                )}
                               </div>
-                            )}
+                              
+                              {item.settings?.binding !== 'none' && (
+                                <span className="px-2 py-0.5 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded text-[10px] font-bold uppercase tracking-wide border border-orange-100 dark:border-orange-800">
+                                  {item.settings?.binding}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
                     </div>
 
                     {/* Admin Actions */}
-                    <div className="lg:col-span-3 pt-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div className="md:col-span-3 pt-6 border-t border-gray-200 dark:border-gray-700 flex flex-col sm:flex-row justify-between items-center gap-4">
                       <div className="text-sm bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
                         <span className="text-gray-500 dark:text-gray-400">Payment Method: </span>
                         <span className="font-bold text-gray-900 dark:text-white capitalize ml-1">
